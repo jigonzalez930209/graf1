@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { GrafContext } from './GraftContext';
-import { IGraftState, INotification, IFileType, IGrafType, IGraftImpedanceType, IStepBetweenPoints } from '../interfaces/interfaces';
+import { IGraftState, INotification, IFileType, IGrafType, IGraftImpedanceType, IStepBetweenPoints, columns } from '../interfaces/interfaces';
 import { graftReducer } from './graftReducer';
 import useLocalStorage from '../hooks/useLocalStorage';
 
@@ -17,7 +17,8 @@ const INITIAL_STATE: IGraftState = {
   graftType: 'scatter',
   impedanceType: 'Nyquist',
   stepBetweenPoints: 30,
-  drawerOpen: false
+  drawerOpen: false,
+  columns: null,
 }
 
 interface props {
@@ -45,6 +46,8 @@ export const GraftProvider = ({ children }: props) => {
 
   const setDrawerOpen = (open: boolean) => dispatch({ type: 'setDrawerOpen', payload: open })
 
+  const setSelectedColumns = (columns: columns) => dispatch({ type: 'setSelectedColumns', payload: columns })
+
   React.useEffect(() => {
     if (data?.find(file => file.selected)?.type) {
       setSelectedFile(data.find(file => file.selected).type)
@@ -61,6 +64,7 @@ export const GraftProvider = ({ children }: props) => {
       setImpedanceType,
       setStepBetweenPoints,
       setDrawerOpen,
+      setSelectedColumns,
     }}>
       {children}
     </GrafContext.Provider>

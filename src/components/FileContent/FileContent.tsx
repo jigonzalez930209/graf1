@@ -1,6 +1,7 @@
 import * as React from 'react';
+import { ProcessFile } from '../../interfaces/interfaces';
 
-import { ProcessFile } from '../../hooks/useData'
+
 import Table from '../Table';
 
 

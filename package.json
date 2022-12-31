@@ -22,6 +22,7 @@
     "@types/react-dom": "^18.0.9",
     "@types/styled-components": "^5.1.15",
     "apexcharts": "^3.36.0",
+    "console-feed": "^3.4.1",
     "d3-time-format": "^4.0.0",
     "echarts": "^5.4.0",
     "file-saver": "^2.0.5",
@@ -38,7 +39,8 @@
     "react-xls": "^0.1.1",
     "styled-components": "^5.3.3",
     "typescript": "^4.9.3",
-    "usehooks-ts": "^2.7.2"
+    "usehooks-ts": "^2.7.2",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.19.1/xlsx-0.19.1.tgz"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.2.2",

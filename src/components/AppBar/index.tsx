@@ -6,17 +6,20 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
-import MenuIcon from '@mui/icons-material/Menu';
 import ClearIcon from '@mui/icons-material/Clear';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { CssBaseline, Divider, Drawer, useTheme, styled } from '@mui/material';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import { CssBaseline, Divider, Drawer } from '@mui/material';
 
 import FileList from '../FileList'
-import { ProcessFile, useData } from '../../hooks/useData';
+import { useData } from '../../hooks/useData';
 import ExportModal from '../ExportModal';
 import GraftHandlerPopper from '../GraftHandlerPopper';
 import { GrafContext } from '../../context/GraftContext';
+import Logs from '../LogsComponent';
+import { ProcessFile } from '../../interfaces/interfaces';
 
 const drawerWidth = 240;
 type BarProps = {
@@ -25,19 +28,21 @@ type BarProps = {
   readAllFiles: () => void
 }
 
-const DrawerHeader = styled('div')(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
-  ...theme.mixins.toolbar,
-  justifyContent: 'flex-end',
-}));
+function style(color) {
+  return {
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color
+  };
+}
 
 const Bar: React.FC<BarProps> = ({ files, content, readAllFiles }) => {
   const { cleanData } = useData()
   const [open, setOpen] = React.useState(false)
   const { graftState: { drawerOpen }, setDrawerOpen } = React.useContext(GrafContext)
+  const [logsDrawerOpen, setLogsDrawerOpen] = React.useState(false)
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -98,9 +103,45 @@ const Bar: React.FC<BarProps> = ({ files, content, readAllFiles }) => {
       >
         <Toolbar />
         <Divider />
-        <Box sx={{ overflow: 'auto' }}>
+        <Box>
           <FileList files={files} />
           <Divider />
+          <IconButton
+            onClick={() => setLogsDrawerOpen(!logsDrawerOpen)}
+            color="inherit"
+            edge="start"
+            sx={{
+              position: 'absolute',
+              bottom: logsDrawerOpen ? drawerWidth - 10 : 10,
+              left: drawerWidth * .8,
+              zIndex: 5000,
+              transform: 'scale(0.8)',
+              backgroundColor: 'grey.300',
+            }}
+          >
+            {logsDrawerOpen ? <KeyboardArrowDownIcon /> : <KeyboardArrowUpIcon />}
+          </IconButton>
+          <Drawer
+            variant="persistent"
+            anchor='bottom'
+            open={logsDrawerOpen}
+            sx={{
+              width: drawerWidth,
+              height: drawerWidth,
+
+              flexShrink: 0,
+              ...(logsDrawerOpen ? { display: 'block' } : { display: 'none' }),
+              [`& .MuiDrawer-paper`]: {
+                width: drawerWidth,
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+                height: drawerWidth,
+                backgroundColor: 'grey.800'
+              },
+            }}
+          >
+            <Logs />
+          </Drawer>
         </Box>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 0 }}>

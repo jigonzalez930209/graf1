@@ -3,58 +3,13 @@ import _ from 'lodash'
 
 import useLocalStorage from './useLocalStorage'
 import { GrafContext } from '../context/GraftContext'
-import { IStepBetweenPoints } from '../interfaces/interfaces'
-
-export type File = {
-  id: number
-  name: string
-  content: string
-  selected: boolean
-}
-
-export type ExportData = {
-  name: string
-  value: {
-    Time?: number,
-    Frequency?: number,
-    Module?: number,
-    Fase?: number,
-    ZI?: number,
-    ZR?: number,
-  }[]
-}[]
-
-export type ProcessFile = {
-  id: number
-  name: string
-  type: 'teq4' | 'teq4Z'
-  pointNumber: number
-  content: string[][]
-  selected: boolean
-  impedance?: {
-    V: number
-    signalAmplitude: number
-    sFrequency: number
-    eFrequency: number
-    totalPoints: number
-  }
-  voltammeter?: {
-    samplesSec: number
-    range: number
-    totalTime: number
-    cicles: number
-  }
-}
-
-export type Files = {
-  files: File[]
-}
+import { IStepBetweenPoints, ProcessFile } from '../interfaces/interfaces'
 
 
 export const useData = () => {
 
   const [data, setData] = useLocalStorage<ProcessFile[]>('files', null)
-  const { graftState: { fileType }, setSelectedFile } = React.useContext(GrafContext)
+  const { graftState: { fileType }, setSelectedFile, setSelectedColumns: setColumns } = React.useContext(GrafContext)
 
   const updateData = (payload: ProcessFile[]) => {
     if (payload?.length > 0) {
@@ -66,13 +21,24 @@ export const useData = () => {
 
   const changeSelectedFile = (id: number) => {
     const file = data.find((file) => file.id === id)
-    if (file.type === fileType) {
-      setData(prev => prev.map(file => {
-        return file.id === id ? { ...file, selected: !file.selected } : file
-      }))
+    if (file.type === fileType && file.type !== 'csv') {
+
+      setData(prev => prev.map(file => file.id === id ? { ...file, selected: !file.selected } : file))
     } else {
       setSelectedFile(file.type)
       setData(prev => prev.map(file => ({ ...file, selected: file.id === id })))
+      setColumns(
+        {
+          id: file.id,
+          fileName: file.name,
+          columns: file.csv.columns.map((name, index) => ({
+            name: name,
+            index: index,
+            selected: false,
+            axis: null,
+          }))
+        }
+      )
     }
   }
 
@@ -197,6 +163,26 @@ export const useData = () => {
 
   }
 
+  const getCSVData = (columns: { name: string, axis: string }[]) => {
+    if (data === null) {
+      return [];
+    }
+    const csvData = data.filter(file => file.selected).find((file) => file.type === 'csv')
+    const selectedColumns = csvData.csv.columns.reduce((acc, curr, i) =>
+    ({
+      ...acc, ...(columns.find(({ name }) => name === curr)?.name ?
+        { [curr]: { name: curr, index: i, selected: true, axis: columns.find(({ name }) => name === curr).axis } } :
+        { [curr]: { name: curr, index: i, selected: false, axis: columns.find(({ name }) => name === curr).axis } }
+      )
+    }), {}
+    )
+    return {
+      ...csvData,
+      content: csvData.content.map((c) => columns.reduce((acc, curr) => ({ ...acc, [curr.name]: c[selectedColumns[curr.name].index] }), {}))
+    }
+
+  }
+
   return {
     data,
     updateData,
@@ -207,6 +193,7 @@ export const useData = () => {
     exportImpedanceDataToExcel,
     getVCData,
     getZIZRvsFrequency,
+    getCSVData,
     exportVoltammeterDataToExcel
   };
 };

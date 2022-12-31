@@ -1,52 +1,56 @@
-import { writeTextFile, readBinaryFile } from "@tauri-apps/api/fs";
-import { open } from '@tauri-apps/api/dialog';
+import { readBinaryFile, writeBinaryFile } from "@tauri-apps/api/fs";
+import { open, save } from '@tauri-apps/api/dialog';
+import { read, utils, write } from 'xlsx';
 import _ from 'lodash'
 
-import { File, Files, ProcessFile } from "../hooks/useData";
+import { File, ProcessFile } from "../interfaces/interfaces";
 
-function download(strData, strFileName, strMimeType) {
-  var D = document,
-    A = arguments,
-    a = D.createElement("a"),
-    d = A[0],
-    n = A[1],
-    t = A[2] || "text/plain";
 
-  //build download link:
-  a.href = "data:" + strMimeType + "charset=utf-8," + escape(strData);
+// const filters = [
+//   { name: "Excel Binary Workbook", extensions: ["xlsb"] },
+//   { name: "Excel Workbook", extensions: ["xlsx"] },
+//   { name: "Excel 97-2004 Workbook", extensions: ["xls"] },
+//   // ... other desired formats ...
+// ];
 
-  if ('download' in a) { //FF20, CH19
-    a.setAttribute("download", n);
-    a.innerHTML = "downloading...";
-    D.body.appendChild(a);
-    setTimeout(function () {
-      var e = D.createEvent("MouseEvents");
-      e.initMouseEvent("click", true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-      a.dispatchEvent(e);
-      D.body.removeChild(a);
-    }, 66);
-    return true;
-  }; /* end if('download' in a) */
+// async function saveFile(wb) {
+//   /* show save file dialog */
+//   const selected = await save({
+//     title: "Save to Spreadsheet",
+//     filters
+//   });
 
-  //do iframe dataURL download: (older W3)
-  var f = D.createElement("iframe");
-  D.body.appendChild(f);
-  f.src = "data:" + (A[2] ? A[2] : "application/octet-stream") + (window.btoa ? ";base64" : "") + "," + (window.btoa ? window.btoa : escape)(strData);
-  setTimeout(function () {
-    D.body.removeChild(f);
-  }, 333);
-  return true;
-}
+//   /* Generate workbook */
+//   const bookType = selected.slice(selected.lastIndexOf(".") + 1);
+//   const d = write(wb, { type: "buffer", bookType });
+
+//   /* save data to file */
+//   await writeBinaryFile(selected, d);
+// }
+
+// async function openFile() {
+//   /* show open file dialog */
+//   const selected = await open({
+//     title: "Open Spreadsheet",
+//     multiple: false,
+//     directory: false,
+//     filters
+//   });
+
+//   /* read data into a Uint8Array */
+//   const d = await readBinaryFile(selected);
+
+//   /* parse with SheetJS */
+//   const wb = read(d);
+//   return wb;
+// }
+
 
 const fileType = (fileName: string): string => {
   const fileNameParts: String[] = fileName.split('.')
   const fileExtension = fileNameParts[fileNameParts.length - 1]
-
-  if (fileExtension === 'teq4Z') {
-    return 'teq4Z'
-  } else if (fileExtension === 'teq4') {
-    return 'teq4'
-  } else return null
+  if (typeof fileExtension !== 'undefined') return fileExtension.toLowerCase()
+  else return null
 }
 
 
@@ -55,8 +59,8 @@ const extractSerialPoint = (files: File[]): ProcessFile[] => {
 
   for (let i = 0; i < files.length; i++) {
     const element = files[i]
-    if (fileType(element.name) === 'teq4Z') {
-      const arrayFile = files[i].content.split(/(?:\r\n|\r|\n)/g)
+    if (fileType(element.name) === 'teq4z') {
+      const arrayFile = (element.content as string).split(/(?:\r\n|\r|\n)/g)
       const pointNumber = parseInt(arrayFile[105])
       const data = _.slice(arrayFile, 146, 146 + pointNumber)
       const dataPoint: string[][] = data.map((line) => line.split(','))
@@ -77,7 +81,7 @@ const extractSerialPoint = (files: File[]): ProcessFile[] => {
         impedance: impedance
       })
     } else if (fileType(element.name) === 'teq4') {
-      const arrayFile = files[i].content.split(/(?:\r\n|\r|\n)/g)
+      const arrayFile = (element.content as string).split(/(?:\r\n|\r|\n)/g)
       const countX = parseInt(arrayFile[23].split(',')[1])
       const countY = parseInt(arrayFile[24].split(',')[1])
       const dataX = _.slice(arrayFile, 146, 146 + countX)
@@ -102,48 +106,24 @@ const extractSerialPoint = (files: File[]): ProcessFile[] => {
           totalTime,
         }
       })
-    } else throw new Error('File type not supported')
+    } else if (fileType(element.name) === 'csv') {
+      processFile.push({
+        id: i,
+        type: 'csv',
+        name: element.name,
+        content: files[i].content as string[][],
+        selected: i === 0,
+
+        csv: { columns: files[i].columns },
+      })
+    }
+    else if (fileType(element.name) === 'xlsx') { }
+    else throw new Error('File type not supported')
   }
 
   return processFile
 }
 
-
-const readFileContentsUsingJS = async (file) => {
-  return new Promise((resolve, reject) => {
-    let fileReader = new FileReader();
-    fileReader.onload = () => {
-      resolve(fileReader.result);
-    };
-    fileReader.onerror = reject;
-    fileReader.readAsText(file);
-  });
-}
-const readAllFilesUsingJS = async (AllFiles) => {
-  const results = await Promise.all(AllFiles.map(async (file) => {
-    const fileContents = await readFileContentsUsingJS(file);
-    return fileContents;
-  }));
-  return results;
-}
-
-const readFileContentFromTauri = async (file) => {
-  return new Promise((resolve, reject) => {
-    try {
-      resolve(readBinaryFile(file));
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
-const readAllFilesTauri = async (AllFiles) => {
-  const results = await Promise.all(AllFiles.map(async (file) => {
-    const fileContents = await readFileContentFromTauri(file);
-    return fileContents;
-  }));
-  return results;
-}
 
 const Utf8ArrayToStr = (array: number[]): string => {
   let out, i, len, c;
@@ -182,8 +162,8 @@ const readFilesUsingTauriProcess = async () => {
   const selected = await open({
     multiple: true,
     filters: [{
-      name: 'teq4Z & teq4',
-      extensions: ['teq4Z', 'teq4']
+      name: 'teq4Z & teq4 & csv',
+      extensions: ['teq4Z', 'teq4', 'csv']
     }]
   });
   if (Array.isArray(selected)) {
@@ -197,16 +177,21 @@ const readFilesUsingTauriProcess = async () => {
       });
 
     }
-    const readAllFilesI = async (AllFiles) => {
+    const readAllFiles = async (AllFiles) => {
 
       const results = await Promise.all(AllFiles.map(async (file) => {
         const fileContents = await readFileContentsI(file);
-        return { content: await Utf8ArrayToStr(fileContents as number[]), name: _.last(file.split(/\\/g)) };
+        const name = _.last(file.split(/\\/g)) as string;
+        if (fileType(name) === 'csv') {
+          const contentXLSX = read(fileContents as number[], { type: 'array' });
+          return { content: Object.values(utils.sheet_to_json(contentXLSX.Sheets[contentXLSX.SheetNames[0]])).map(i => Object.values(i)), name, columns: Object.keys(utils.sheet_to_json(contentXLSX.Sheets[contentXLSX.SheetNames[0]])[0]) };
+        }
+        return { content: await Utf8ArrayToStr(fileContents as number[]), name };
       }));
 
       return results;
     }
-    const contents = extractSerialPoint(await readAllFilesI(selected))
+    const contents = extractSerialPoint(await readAllFiles(selected))
     return contents
   } else if (selected === null) {
     console.log('user cancelled the selection')
@@ -256,9 +241,6 @@ const COLUMNS_VOLTAMETER = [
 export {
   extractSerialPoint,
   fileType,
-  readFileContentsUsingJS,
-  readAllFilesUsingJS,
-  readAllFilesTauri,
   Utf8ArrayToStr,
   readFilesUsingTauriProcess,
   COLORS,

@@ -1,12 +1,17 @@
 import * as React from 'react'
 import Plotly from 'react-plotly.js';
+import { GrafContext } from '../../context/GraftContext';
 import usePlotlyOptions from '../../hooks/usePlotlyOptions';
 
 
 const PlotlyChart = () => {
   const { data, layout, config } = usePlotlyOptions()
-
+  const { graftState: { fileType } } = React.useContext(GrafContext)
   const [zoomState, setZoomState] = React.useState<{ xRange: number[], yRange: number[], y1Range?: number[] }>(null)
+
+  React.useEffect(() => {
+    setZoomState(null)
+  }, [fileType])
 
   return (
     <Plotly

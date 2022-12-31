@@ -5,6 +5,7 @@ import {
   IGrafType,
   IGraftImpedanceType,
   IStepBetweenPoints,
+  columns,
 } from "../interfaces/interfaces";
 
 type GraftAction = {
@@ -15,7 +16,8 @@ type GraftAction = {
     | "setGraftType"
     | "setImpedanceType"
     | "setStepBetweenPoints"
-    | "setDrawerOpen";
+    | "setDrawerOpen"
+    | "setSelectedColumns";
   payload:
     | INotification
     | IFileType
@@ -23,7 +25,8 @@ type GraftAction = {
     | IGrafType
     | IGraftImpedanceType
     | IStepBetweenPoints
-    | boolean;
+    | boolean
+    | columns;
 };
 
 export const graftReducer = (
@@ -66,7 +69,11 @@ export const graftReducer = (
         ...state,
         drawerOpen: action.payload as boolean,
       };
-
+    case "setSelectedColumns":
+      return {
+        ...state,
+        columns: action.payload as columns,
+      };
     default:
       return state;
   }

@@ -4,51 +4,36 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
-import Typography from '@mui/material/Typography';
-import { Tooltip } from '@mui/material';
 
-import { ProcessFile, useData } from '../../hooks/useData';
+import Tooltip from './Tooltip';
+import { useData } from '../../hooks/useData';
+import { ProcessFile } from '../../interfaces/interfaces';
+import ColumnsDialog from './ColumnsDialog';
 
 const FileList = ({ files }: { files: ProcessFile[] }) => {
   const { changeSelectedFile } = useData()
-  return (files && files.length > 0) && (
+  const [modalOpen, setModalOpen] = React.useState(false);
+
+
+  const handleSelect = (id: number) => {
+    changeSelectedFile(id)
+    if (files.find(file => file.id === id).type === 'csv') {
+      setModalOpen(true)
+    }
+  }
+
+  return (files && files.length > 0) && (<>
+    {modalOpen && <ColumnsDialog open={modalOpen} setOpen={setModalOpen} />}
     <List sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
-      {files?.map((file, i) => {
-
+      {files?.map(file => {
         const labelId = `checkbox-list-label-${file.name}`;
-
         return (
           <ListItem
             key={file.id}
             disablePadding
           >
-            <Tooltip
-              placement="right"
-              arrow
-              title={
-                <>
-                  {file.type === 'teq4' && (
-                    <React.Fragment>
-                      <Typography variant='h6'>Cyclic voltametry</Typography>
-                      <p>Cycles: {file.voltammeter?.cicles}</p>
-                      <p>Samples by second: {file.voltammeter?.samplesSec} samples/s</p>
-                      <p>Total Time: {file.voltammeter?.totalTime} s</p>
-                      <p>Total Points: {file.content?.length}</p>
-                    </React.Fragment>
-                  )} {file.type === 'teq4Z' && (
-                    <React.Fragment>
-                      <Typography variant='h6'>Impedance</Typography>
-                      <p>Voltage: {file.impedance?.V} V</p>
-                      <p>Sinusoidal Amplitude: {file.impedance?.signalAmplitude} V</p>
-                      <p>Initial Frequency: {file.impedance?.sFrequency} Hz</p>
-                      <p>End Frequency: {file.impedance?.eFrequency} Hz</p>
-                      <p>Total Points: {file.impedance?.totalPoints}</p>
-                    </React.Fragment>
-                  )}
-                </>
-              }
-            >
-              <ListItemButton role={undefined} onClick={() => changeSelectedFile(file.id)} dense>
+            <Tooltip file={file}>
+              <ListItemButton role={undefined} onClick={() => handleSelect(file.id)} dense>
                 <Checkbox
                   edge="start"
                   checked={file.selected}
@@ -63,6 +48,6 @@ const FileList = ({ files }: { files: ProcessFile[] }) => {
         );
       })}
     </List>
-  );
+  </>);
 }
 export default FileList
